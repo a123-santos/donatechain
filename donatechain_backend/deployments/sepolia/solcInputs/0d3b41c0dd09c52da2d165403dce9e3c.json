@@ -1,0 +1,35 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/EthCharity.sol": {
+      "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.0;\r\n\r\ncontract EthCharity {\r\n\r\n    uint private amountEth; \r\n    address immutable private owner;\r\n\r\n    mapping(address => uint256) donors;\r\n\r\n    constructor() {\r\n        owner = msg.sender;\r\n    }\r\n    \r\n    modifier conversion {\r\n        require(msg.value >= 0.002 ether, \"error\");\r\n        _;\r\n    }\r\n\r\n    modifier ownable {\r\n        require(msg.sender == owner, \"not the owner\");\r\n        _;\r\n    }\r\n\r\n    modifier validWithdrawal(uint _amount) {\r\n        require(amountEth >= _amount && _amount > 0, \"Invalid withdrawal amount\");\r\n        _;\r\n    }\r\n\r\n    function addFund() public payable conversion {\r\n     //  (bool sent, ) = owner.call{value: msg.value}(\"\");\r\n    //   require(sent, \"not sent\");\r\n\r\n        \r\n        amountEth += msg.value;\r\n\r\n        donors[msg.sender] = donors[msg.sender] + msg.value;\r\n    }\r\n\r\n    function leftAmount() public ownable view returns(uint) {\r\n        return amountEth;\r\n    }\r\n\r\n    function showDonor(address _address) public view returns(uint256) {\r\n        \r\n\r\n        return donors[_address];\r\n    }\r\n\r\n\r\nfunction withdrawFund() public ownable {\r\n    payable(owner).transfer(address(this).balance);\r\n    amountEth = 0; \r\n}\r\n\r\n\r\n    receive() external payable { \r\n        addFund();\r\n    }\r\n\r\n    fallback() external payable { \r\n        revert();\r\n    }\r\n    \r\n\r\n}"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": false,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/EthCharity.sol": {
+      "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.0;\r\n\r\ncontract EthCharity {\r\n    uint private amountEth;\r\n    address private immutable owner;\r\n\r\n    enum EventStatus {\r\n        PENDING,\r\n        COMPLETED\r\n    }\r\n\r\n    struct Event {\r\n        string eventName;\r\n        uint256 requiredFund;\r\n        address fundRaiserAddress;\r\n        EventStatus status;\r\n        uint256 collectedFund;\r\n        string description;\r\n    }\r\n\r\n    struct projectsDonated {\r\n        string eventName;\r\n        uint256 donatedAmount;\r\n    }\r\n\r\n    error invalidFund();\r\n    error unAuthorized();\r\n    error transactionUnsuccessful();\r\n\r\n    Event[] public events;\r\n\r\n    mapping(address => projectsDonated[]) donors;\r\n\r\n    constructor() {\r\n        owner = msg.sender;\r\n\r\n     /*    events.push(\r\n            Event(\r\n                'Hunger',\r\n                3000000000,\r\n                0x1CBd3b2770909D4e10f157cABC84C7264073C9Ec,\r\n                EventStatus.PENDING,\r\n                0,\r\n                'Apple'\r\n            )\r\n        );\r\n        events.push(\r\n            Event(\r\n                'Tsunami',\r\n                300,\r\n                0x2546BcD3c84621e976D8185a91A922aE77ECEc30,\r\n                EventStatus.PENDING,\r\n                0,\r\n                'Banana'\r\n            )\r\n        );\r\n        events.push(\r\n            Event(\r\n                'Cyclone',\r\n                300,\r\n                0x2546BcD3c84621e976D8185a91A922aE77ECEc30,\r\n                EventStatus.PENDING,\r\n                0,\r\n                'Cherry'\r\n            )\r\n        );\r\n        events.push(\r\n            Event(\r\n                'Reconstruction',\r\n                300,\r\n                0x2546BcD3c84621e976D8185a91A922aE77ECEc30,\r\n                EventStatus.PENDING,\r\n                0,\r\n                'Mango'\r\n            )\r\n        ); */\r\n    }\r\n\r\n    modifier conversion() {\r\n        require(msg.value >= 0.002 ether, 'error');\r\n        _;\r\n    }\r\n\r\n    modifier ownable() {\r\n        require(msg.sender == owner, 'not the owner');\r\n        _;\r\n    }\r\n\r\n    modifier validWithdrawal(uint _amount) {\r\n        require(\r\n            amountEth >= _amount && _amount > 0,\r\n            'Invalid withdrawal amount'\r\n        );\r\n        _;\r\n    }\r\n\r\n    modifier validEvent(uint256 _amount) {\r\n        if (_amount >= 100 ether) {\r\n            revert invalidFund();\r\n        }\r\n        _;\r\n    }\r\n\r\n    function addFund(string memory _eventName) public payable {\r\n        amountEth += msg.value;\r\n\r\n        projectsDonated[] storage temp = donors[msg.sender];\r\n        bool donationUpdated = false;\r\n\r\n        for (uint i = 0; i < temp.length; i++) {\r\n            if (\r\n                keccak256(abi.encodePacked(temp[i].eventName)) ==\r\n                keccak256(abi.encodePacked(_eventName))\r\n            ) {\r\n                donors[msg.sender][i].donatedAmount += msg.value;\r\n                donationUpdated = true;\r\n                break;\r\n            }\r\n        }\r\n\r\n        if (!donationUpdated) {\r\n            donors[msg.sender].push(projectsDonated(_eventName, msg.value));\r\n        }\r\n\r\n        for (uint i = 0; i < events.length; i++) {\r\n            if (\r\n                keccak256(abi.encodePacked(events[i].eventName)) ==\r\n                keccak256(abi.encodePacked(_eventName))\r\n            ) {\r\n                events[i].collectedFund += msg.value;\r\n                if (events[i].collectedFund >= events[i].requiredFund) {\r\n                    events[i].status = EventStatus.COMPLETED;\r\n                    (bool success, ) = (events[i].fundRaiserAddress).call{\r\n                        value: events[i].requiredFund\r\n                    }('');\r\n                    if (!success) {\r\n                        revert transactionUnsuccessful();\r\n                    }\r\n                }\r\n            }\r\n        }\r\n    }\r\n\r\n    function leftAmount() public view ownable returns (uint) {\r\n        return amountEth;\r\n    }\r\n\r\n    function showDonor(\r\n        address _address\r\n    ) public view returns (projectsDonated[] memory) {\r\n        return donors[_address];\r\n    }\r\n\r\n    function withdrawFund() public ownable {\r\n        payable(owner).transfer(address(this).balance);\r\n        amountEth = 0;\r\n    }\r\n\r\n    function postEvents(\r\n        string memory eventName,\r\n        uint256 requiredFund,\r\n        string memory description\r\n    ) public validEvent(requiredFund) {\r\n        Event memory newEvent = Event(\r\n            eventName,\r\n            requiredFund,\r\n            msg.sender,\r\n            EventStatus.PENDING,\r\n            0,\r\n            description\r\n        );\r\n        events.push(newEvent);\r\n    }\r\n\r\n    function showEvents() public view returns (Event[] memory) {\r\n        return events;\r\n    }\r\n\r\n    receive() external payable {}\r\n\r\n    fallback() external payable {\r\n        revert unAuthorized();\r\n    }\r\n}\r\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": false,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
